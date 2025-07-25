@@ -6,15 +6,7 @@
       "use": "@vercel/python"
     },
     {
-      "src": "index.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "chat.png",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "brain-rot.png",
+      "src": "public/**",  
       "use": "@vercel/static"
     }
   ],
@@ -24,8 +16,8 @@
       "dest": "main.py"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "src": "/(.*)",    
+      "dest": "/public/$1"
     }
   ]
 }
