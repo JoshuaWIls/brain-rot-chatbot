@@ -3,10 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="/chat.png" type="image/png">
+  <!-- Removed: <link rel="icon" href="/chat.png" type="image/png"> -->
   <title>Brain Rot therapist</title>
   <link href="https://fonts.googleapis.com/css2?family=Forum&family=Trajan+Pro:wght@400;700&display=swap" rel="stylesheet">
   <style>
+    html, body { /* Added for explicit box-sizing */
+        box-sizing: border-box;
+    }
+    *, *::before, *::after { /* Ensure universal box-sizing */
+        box-sizing: inherit;
+    }
+
     :root {
       --primary-color: #2E4057; /* Deep Slate Blue */
       --primary-dark: #1A283A; /* Darker Blue */
@@ -24,11 +31,7 @@
       --border-color: #00FFC0; /* Neon Green border for elements */
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    /* Removed duplicate * { margin: 0; padding: 0; box-sizing: border-box; } as it's now handled by html, body, and *::before, *::after */
 
     body {
       font-family: 'Forum', serif;
@@ -269,6 +272,13 @@
       color: var(--text-color); /* Light text in input */
       box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.25);
       text-indent: 5px;
+      /* --- CSS for input field to ensure it's clickable/typable --- */
+      position: relative; /* Essential for z-index to work */
+      z-index: 10;      /* Bring to front, above other elements */
+      cursor: text;     /* Provide visual feedback that it's typable */
+      -webkit-user-select: auto; /* Ensure text selection is possible on touch devices */
+      user-select: auto;
+      -webkit-touch-callout: default; /* Allow default touch behaviors */
     }
 
     #userInput:focus {
@@ -535,7 +545,7 @@
     </div>
     
     <div class="input-area">
-      <input type="text" id="userInput" placeholder="> Input chaotic thoughts, citizen..." onkeydown="checkEnter(event)">
+      <input type="text" id="userInput" placeholder="> Input chaotic thoughts, citizen..." onkeydown="checkEnter(event)" tabindex="0">
       <button class="send-button" onclick="sendMessage()">
         <svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -653,6 +663,7 @@
   }
 
   window.onload = function() {
+    console.log("Window loaded. Initializing chatbot."); // Debugging log
     setTimeout(() => {
       const messages = document.getElementById('messages');
       const time = getCurrentTime();
@@ -675,7 +686,20 @@
         </div>
       `;
       messages.scrollTop = messages.scrollHeight;
+      console.log("Initial bot message added."); // Debugging log
+
+      // Attempt to focus the input after initial message
+      const userInput = document.getElementById('userInput');
+      if (userInput) {
+        userInput.focus();
+        console.log("Attempted to focus userInput."); // Debugging log
+      }
     }, 500);
+
+    // Add a click listener to the input for debugging
+    document.getElementById('userInput').addEventListener('click', () => {
+        console.log("userInput clicked!"); // Debugging log
+    });
   };
 </script>
 
