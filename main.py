@@ -19,36 +19,35 @@ app.add_middleware(
 )
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-# Use the stable alias to avoid 404 "Model Not Found" errors
-MODEL_NAME = "gemini-3.1-flash" 
-GEMINI_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
-
+GEMINI_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
 @app.get("/")
 async def serve_home():
-    return FileResponse("index.html")
+    for path in ["public/index.html", "index.html"]:
+        if os.path.exists(path):
+            return FileResponse(path)
+    return PlainTextResponse("index.html not found", status_code=404)
 
 @app.post("/chat")
 async def chat(request: Request):
+    if not GEMINI_API_KEY:
+        return PlainTextResponse("Server Error: Missing API Key.", status_code=500)
+
     try:
         data = await request.json()
         user_message = data.get("message")
 
         if not user_message:
-            return PlainTextResponse(content="Error: No message.", status_code=400)
+            return PlainTextResponse("Error: No message provided.", status_code=400)
 
-        full_prompt = f"""
-You are Brain Rotted Character — a sharp, witty expert who is *always wrong*. 
-Speak with absolute confidence. Use modern, casual language.
-User: {user_message}
-"""
+        full_prompt = f"""You are Brain Rotted Character — a sharp, witty, overly confident expert who is *always wrong*, but never in doubt. You speak like someone who's absolutely sure they know everything — even when they clearly don't.
+Your job is to answer every question with complete certainty, even though your answer is totally, hilariously incorrect. Never admit you're wrong, never show hesitation, and always say things like you're giving out expert advice. Sound helpful, maybe even a little smug, but you're always wrong.
+Make it fun, clever, and confidently misleading. Use modern, casual language — like you're the smartest person in the room (even though you're not).
+
+User: {user_message}"""
 
         json_input = {
             "contents": [{"role": "user", "parts": [{"text": full_prompt}]}],
-            "generationConfig": {
-                "temperature": 1.0,
-                "maxOutputTokens": 800
-            }
+            "generationConfig": {"temperature": 1.0}
         }
 
         async with httpx.AsyncClient() as client:
@@ -56,21 +55,24 @@ User: {user_message}
 
         if response.status_code == 200:
             res_data = response.json()
-            # Gemini 3.1 response parsing
-            try:
-                parts = res_data['candidates'][0]['content']['parts']
-                # Filter for the text part (skipping thought signatures)
-                text_response = next((p['text'] for p in parts if 'text' in p), "")
-                return PlainTextResponse(content=text_response)
-            except (KeyError, IndexError):
-                return PlainTextResponse(content="Error: AI brain stall.", status_code=500)
+            parts = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+            text = next((p["text"] for p in parts if "text" in p), "No response generated.")
+            return PlainTextResponse(content=text)
         else:
-            # This will catch 404s, 400s, etc.
-            return PlainTextResponse(content=f"API Error: {response.status_code}", status_code=response.status_code)
+            print(f"Google API Error: {response.text}")
+            return PlainTextResponse(content=f"API Error: {response.status_code}", status_code=500)
 
+    except httpx.RequestError as e:
+        print(f"Network error: {e}")
+        return PlainTextResponse("Network error connecting to AI.", status_code=500)
     except Exception as e:
-        return PlainTextResponse(content=f"Server Error: {str(e)}", status_code=500)
+        print(f"Internal Exception: {e}")
+        return PlainTextResponse(f"Internal Server Error: {str(e)}", status_code=500)
 
-@app.get("/chat.png")
-async def serve_icon():
-    return FileResponse("chat.png")
+@app.get("/{filename}.png")
+async def serve_image(filename: str):
+    for folder in ["public", ""]:
+        path = os.path.join(folder, f"{filename}.png")
+        if os.path.exists(path):
+            return FileResponse(path)
+    return PlainTextResponse("Image not found", status_code=404)
